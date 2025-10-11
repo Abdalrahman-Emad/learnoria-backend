@@ -7,7 +7,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CourseResource extends JsonResource
 {
     public function toArray($request)
-
     {
         $user = $request->user();
 
@@ -21,7 +20,9 @@ class CourseResource extends JsonResource
             'discounted_price' => $this->discounted_price,
             'duration' => $this->duration,
             'total_duration' => $this->total_duration,
-            'image' => $this->image ? url('images/' . $this->image) : null,
+
+            'image' => $this->getImageUrl(),
+
             'status' => $this->status,
             'max_students' => $this->max_students,
             'start_date' => $this->start_date,
@@ -45,13 +46,11 @@ class CourseResource extends JsonResource
             // Prerequisites
             'requirements' => $this->requirements,
 
-
-           // wishlist & enrollment status 
+            // Wishlist & enrollment status
             'wishlist_count' => $this->wishlist_count,
             'is_wishlisted' => $user ? $this->isWishlistedBy($user->id) : false,
             'is_enrolled' => $user ? $user->enrollments()->where('course_id', $this->id)->exists() : false,
             'is_owned' => $user ? $this->provider_id === $user->id : false,
-
 
             // Pricing & Offers
             'pricing' => [
@@ -84,10 +83,31 @@ class CourseResource extends JsonResource
             'instructors' => CourseInstructorResource::collection($this->whenLoaded('instructors')),
             'primary_instructor' => new CourseInstructorResource($this->whenLoaded('primaryInstructor')),
 
-            // Reviews
+            // Featured Reviews
             'featured_reviews' => ReviewResource::collection($this->whenLoaded('reviews')->where('is_featured', true)->take(3)),
 
             'created_at' => $this->created_at,
         ];
+    }
+
+    /**
+     * Get the properly formatted image URL
+     */
+    private function getImageUrl()
+    {
+        // Return null or placeholder if no image
+        if (empty($this->image)) {
+            return null; // or return a placeholder URL if needed
+        }
+
+        $image = trim($this->image);
+
+        // Check if it's already a full URL (Cloudinary, S3, etc.)
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+            return $image;
+        }
+
+        // Otherwise, it's a relative path on our backend
+        return url('images/' . ltrim($image, '/'));
     }
 }
