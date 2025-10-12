@@ -29,6 +29,8 @@ class EnrollmentController extends Controller
             'student_id' => auth()->id(),
             'course_id' => $course->id,
             'status' => 'enrolled',
+            'enrolled_at' => now(), // ✅ أضف هذا السطر
+
         ]);
 
         return response()->json(['message' => 'Successfully enrolled in course']);

@@ -8,14 +8,16 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Cloudinary\Api\Upload\UploadApi;
 
 class AuthController extends Controller
 {
+    // ✅ Register new user
     public function register(RegisterRequest $request)
     {
-        // Prepare user data
         $userData = [
             'name'     => $request->name,
             'email'    => $request->email,
@@ -26,14 +28,30 @@ class AuthController extends Controller
             'city'     => $request->city,
         ];
 
-        // Handle avatar upload during registration
+        // ✅ Upload avatar to Cloudinary (if provided)
         if ($request->hasFile('avatar')) {
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $userData['avatar'] = $avatarPath;
+            try {
+                $filePath = $request->file('avatar')->getRealPath();
+                
+                $uploaded = (new UploadApi())->upload($filePath, [
+                    'folder' => 'learnoria/avatars',
+                    'transformation' => [
+                        'width' => 400,
+                        'height' => 400,
+                        'crop' => 'fill',
+                        'gravity' => 'face'
+                    ]
+                ]);
+
+                $userData['avatar'] = $uploaded['secure_url'];
+                $userData['avatar_public_id'] = $uploaded['public_id'];
+            } catch (\Exception $e) {
+                Log::error('Avatar upload failed during registration: ' . $e->getMessage());
+                // Continue registration without avatar
+            }
         }
 
         $user = User::create($userData);
-
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
@@ -43,6 +61,7 @@ class AuthController extends Controller
         ], 201);
     }
 
+    // ✅ Login
     public function login(Request $request)
     {
         $request->validate([
@@ -71,18 +90,20 @@ class AuthController extends Controller
         ]);
     }
 
+    // ✅ Logout
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['message' => 'Logged out successfully']);
     }
 
+    // ✅ Get profile
     public function profile(Request $request)
     {
         return new UserResource($request->user());
     }
 
+    // ✅ Update profile
     public function updateProfile(Request $request)
     {
         $request->validate([
@@ -90,37 +111,73 @@ class AuthController extends Controller
             'phone'  => 'nullable|string|max:20',
             'bio'    => 'nullable|string|max:1000',
             'city'   => 'nullable|string|max:100',
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'avatar' => 'sometimes|image|mimes:jpeg,jpg,png,gif|max:5120', // 5MB
         ]);
 
         $user = $request->user();
-
-        // Fill normal fields
         $user->fill($request->only(['name', 'phone', 'bio', 'city']));
 
-        // Handle avatar if uploaded
+        // ✅ Handle avatar update
         if ($request->hasFile('avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
-            }
+            try {
+                // Delete old avatar from Cloudinary (if exists)
+                if ($user->avatar_public_id) {
+                    try {
+                        Cloudinary::destroy($user->avatar_public_id);
+                    } catch (\Exception $e) {
+                        Log::warning('Failed to delete old avatar: ' . $e->getMessage());
+                    }
+                }
 
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $avatarPath;
+                // Upload new avatar using UploadApi directly
+                $filePath = $request->file('avatar')->getRealPath();
+                
+                $uploaded = (new UploadApi())->upload($filePath, [
+                    'folder' => 'learnoria/avatars',
+                    'transformation' => [
+                        'width' => 400,
+                        'height' => 400,
+                        'crop' => 'fill',
+                        'gravity' => 'face'
+                    ]
+                ]);
+
+                $user->avatar = $uploaded['secure_url'];
+                $user->avatar_public_id = $uploaded['public_id'];
+            } catch (\Exception $e) {
+                Log::error('Avatar upload failed: ' . $e->getMessage());
+                return response()->json([
+                    'message' => 'Failed to upload avatar',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
         }
 
         $user->save();
 
-        return new UserResource($user);
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => new UserResource($user)
+        ]);
     }
 
+    // ✅ Delete avatar
     public function deleteAvatar(Request $request)
     {
         $user = $request->user();
 
-        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-            Storage::disk('public')->delete($user->avatar);
-            $user->update(['avatar' => null]);
+        if ($user->avatar_public_id) {
+            try {
+                Cloudinary::destroy($user->avatar_public_id);
+            } catch (\Exception $e) {
+                Log::warning('Failed to delete avatar from Cloudinary: ' . $e->getMessage());
+            }
         }
+
+        $user->update([
+            'avatar' => null,
+            'avatar_public_id' => null,
+        ]);
 
         return response()->json([
             'message' => 'Avatar deleted successfully',

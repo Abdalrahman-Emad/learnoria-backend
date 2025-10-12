@@ -6,7 +6,8 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000'], // رابط الفرونت عندك
+    'allowed_origins' => ['http://localhost:3000','https://localhost:3000', 'https://learnoria-frontend-production.up.railway.app'],
+
 
     'allowed_origins_patterns' => [],
 
