@@ -12,11 +12,21 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'phone', 'bio', 'city', 'avatar', 'status'
+        'name',
+        'email',
+        'password',
+        'role',
+        'phone',
+        'bio',
+        'city',
+        'avatar',
+        'avatar_public_id',
+        'status'
     ];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -48,8 +58,8 @@ class User extends Authenticatable
     public function wishlistCourses()
     {
         return $this->belongsToMany(Course::class, 'wishlists')
-                    ->withTimestamps()
-                    ->orderBy('wishlists.created_at', 'desc');
+            ->withTimestamps()
+            ->orderBy('wishlists.created_at', 'desc');
     }
 
     // Helper

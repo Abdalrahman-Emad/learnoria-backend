@@ -4,17 +4,16 @@ namespace Database\Seeders;
 
 use App\Models\Enrollment;
 use App\Models\Review;
+use App\Models\Course;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class ReviewSeeder extends Seeder
 {
     public function run()
     {
-        // مسح أي بيانات قديمة
-        DB::table('reviews')->truncate();
+        // ✅ Use delete instead of truncate (safer with foreign keys)
+        Review::query()->delete();
 
-        // Templates للريفيوهات
         $reviewTemplates = [
             [
                 'title' => 'Excellent course with practical projects!',
@@ -78,17 +77,30 @@ class ReviewSeeder extends Seeder
             ],
         ];
 
-        // نجمع كل الكورسات مع الطلاب المسجلين فيها
+        // ✅ Get only approved courses
         $coursesWithEnrollments = Enrollment::with('student', 'course')
+            ->whereHas('course', function($query) {
+                $query->where('status', 'approved');
+            })
             ->get()
             ->groupBy('course_id');
 
+        if ($coursesWithEnrollments->isEmpty()) {
+            $this->command->warn('⚠️  No enrollments found! Please run EnrollmentSeeder first.');
+            return;
+        }
+
+        $totalReviews = 0;
+
         foreach ($coursesWithEnrollments as $courseId => $enrollments) {
-            $students = $enrollments->pluck('student');
+            $students = $enrollments->pluck('student')->unique('id');
 
-            // نضمن على الأقل ريفيوهين لكل كورس، أو أقل إذا عدد الطلاب أقل من 2
-            $numReviews = max(1, min(rand(2, 5), $students->count()));
+            if ($students->isEmpty()) {
+                continue;
+            }
 
+            // ✅ At least 2 reviews per course (or max available students)
+            $numReviews = max(2, min(rand(2, 5), $students->count()));
             $studentsToReview = $students->shuffle()->take($numReviews);
 
             foreach ($studentsToReview as $student) {
@@ -109,7 +121,10 @@ class ReviewSeeder extends Seeder
                         'completed_at' => now()->subDays(rand(1, 60)),
                     ]
                 );
+                $totalReviews++;
             }
         }
+
+        $this->command->info("✅ {$totalReviews} reviews created successfully across " . $coursesWithEnrollments->count() . " courses!");
     }
 }

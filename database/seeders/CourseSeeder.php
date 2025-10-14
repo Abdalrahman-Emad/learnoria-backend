@@ -10,7 +10,40 @@ class CourseSeeder extends Seeder
 {
     public function run()
     {
+        Course::query()->delete();
         $providers = User::where('role', 'provider')->get();
+
+        if ($providers->isEmpty()) {
+            $this->command->error('❌ No providers found! Please run UserSeeder first.');
+            return;
+        }
+
+        // 🖼️ Cloudinary Images - Replace 'your-cloud-name' with your actual Cloudinary cloud name
+        $cloudinaryBase = 'https://res.cloudinary.com/dol0oak5o/image/upload/v1/courses/';
+
+        // Option 1: Use specific images per field
+        $fieldImages = [
+            'Programming' => $cloudinaryBase . 'programming.jpg',
+            'Marketing' => $cloudinaryBase . 'marketing.jpg',
+            'Data Science' => $cloudinaryBase . 'data-science.jpg',
+            'Design' => $cloudinaryBase . 'design.jpg',
+            'Cybersecurity' => $cloudinaryBase . 'cybersecurity.jpg',
+            'Cloud' => $cloudinaryBase . 'cloud-computing.jpg',
+            'AI' => $cloudinaryBase . 'artificial-intelligence.jpg',
+            'Management' => $cloudinaryBase . 'project-management.jpg',
+        ];
+
+        // Option 2: Use Unsplash/Placeholder images (if you don't have images uploaded yet)
+        // $unsplashImages = [
+        //     'Programming' => 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800',
+        //     'Marketing' => 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
+        //     'Data Science' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800',
+        //     'Design' => 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
+        //     'Cybersecurity' => 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800',
+        //     'Cloud' => 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800',
+        //     'AI' => 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
+        //     'Management' => 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800',
+        // ];
 
         $courses = [
             // 1
@@ -859,11 +892,25 @@ class CourseSeeder extends Seeder
                 ]
             ],
         ];
-
         foreach ($courses as $courseData) {
             Course::create(array_merge($courseData, [
                 'provider_id' => $providers->random()->id,
+                'image' => match (strtolower($courseData['field'])) {
+                    'programming' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274822/Full_Stack_Web_Development_Bootcamp_hhqyg2.jpg',
+                    'design' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274797/Artificial_Intelligence_with_Python_k2gghi.jpg',
+                    'marketing' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274803/Digital_Marketing_ravndk.webp',
+                    'business' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274825/Business_Analytics_with_Excel_Power_BI_wv2djv.jpg',
+                    'ai' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274838/Mobile_App_Development_with_React_Native_slbucb.jpg',
+                    'data science' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274823/Data_Science_Machine_Learning_with_Python_hpqr1v.jpg',
+                    'cloud' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274796/AWS_Cloud_Practitioner_Essentials_j8g91x.webp',
+                    'cybersecurity' => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1760274814/Cybersecurity_Fundamentals_Ethical_Hacking_abmjtk.jpg',
+
+                    default => 'https://res.cloudinary.com/dol0oak5o/image/upload/v1733909092/learnoria/courses/default.jpg',
+                },
             ]));
         }
+
+
+        $this->command->info('✅ ' . count($courses) . ' courses created successfully!');
     }
 }
