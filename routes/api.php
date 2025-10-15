@@ -9,6 +9,9 @@ use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AdminController;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +26,10 @@ Route::get('/courses', [CourseController::class, 'index']);
 Route::get('/courses/{course}', [CourseController::class, 'show']);
 Route::get('/courses/{course}/reviews', [ReviewController::class, 'courseReviews']);
 Route::get('/courses/{course}/related', [CourseController::class, 'relatedCourses']);
+
+
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 
 
 
