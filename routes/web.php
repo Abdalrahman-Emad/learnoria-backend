@@ -15,3 +15,13 @@ Route::get('/db-info', function () {
         'username' => config('database.connections.mysql.username'),
     ];
 });
+
+Route::get('/test-mail', function () {
+    \Illuminate\Support\Facades\Mail::raw('Testing Gmail SSL from Railway', function ($message) {
+        $message->to('abdalrahmanemad48@gmail.com')
+                ->subject('Railway Gmail Test');
+    });
+
+    return 'Mail sent (check your inbox)';
+});
+
