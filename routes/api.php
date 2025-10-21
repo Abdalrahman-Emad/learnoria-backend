@@ -111,6 +111,17 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+
+
+
+
+// Password Reset Routes
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+    ->middleware('throttle:3,1'); // 3 requests per minute
+
+Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
+
+// Debug Routes (REMOVE IN PRODUCTION)
 Route::get('/debug-config', function () {
     return response()->json([
         'mail_mailer' => config('mail.default'),
@@ -128,24 +139,30 @@ Route::get('/debug-config', function () {
 });
 
 Route::get('/test-mail', function () {
-    $to = 'abdalrahmanemad48@gmail.com';
-    $name = 'Abdalrahman';
-    $subject = 'Test Email from Learnoria (Brevo API)';
-    $html = '<h3>Hi from Learnoria</h3><p>This is a test email sent via Brevo API.</p>';
+    try {
+        \Illuminate\Support\Facades\Mail::raw('This is a test email from Learnoria!', function ($message) {
+            $message->to('your-test-email@gmail.com') // CHANGE THIS
+                    ->subject('Test Email - Learnoria');
+        });
 
-    $result = BrevoMailService::send($to, $name, $subject, $html);
-
-    return response()->json($result);
+        return response()->json([
+            'success' => true,
+            'message' => 'Test email sent! Check your inbox (and spam folder).',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+        ], 500);
+    }
 });
-
-
 
 Route::get('/test-password-reset', function () {
     try {
-        $user = \App\Models\User::where('email', 'your-test-email@gmail.com')->first();
+        $user = \App\Models\User::where('email', 'your-test-email@gmail.com')->first(); // CHANGE THIS
         
         if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => 'User not found. Create a user with this email first.'], 404);
         }
 
         $token = \Illuminate\Support\Str::random(60);
@@ -166,7 +183,6 @@ Route::get('/test-password-reset', function () {
         return response()->json([
             'success' => false,
             'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
         ], 500);
     }
 });
