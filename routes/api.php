@@ -106,3 +106,74 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 });
+
+
+Route::get('/debug-config', function () {
+    return response()->json([
+        'mail_mailer' => config('mail.default'),
+        'mail_host' => config('mail.mailers.smtp.host'),
+        'mail_port' => config('mail.mailers.smtp.port'),
+        'mail_encryption' => config('mail.mailers.smtp.encryption'),
+        'mail_username' => config('mail.mailers.smtp.username'),
+        'mail_username_set' => !empty(config('mail.mailers.smtp.username')),
+        'mail_password_set' => !empty(config('mail.mailers.smtp.password')),
+        'mail_from_address' => config('mail.from.address'),
+        'mail_from_name' => config('mail.from.name'),
+        'frontend_url' => config('app.frontend_url'),
+        'app_url' => config('app.url'),
+    ]);
+});
+
+Route::get('/test-mail', function () {
+    try {
+        \Illuminate\Support\Facades\Mail::raw('This is a test email from Learnoria on Railway!', function ($message) {
+            $message->to('your-test-email@gmail.com')
+                    ->subject('Test Email - Learnoria');
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Test email sent! Check your inbox (and spam folder).',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+
+
+
+Route::get('/test-password-reset', function () {
+    try {
+        $user = \App\Models\User::where('email', 'your-test-email@gmail.com')->first();
+        
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $token = \Illuminate\Support\Str::random(60);
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            ['token' => \Illuminate\Support\Facades\Hash::make($token), 'created_at' => now()]
+        );
+
+        $user->sendPasswordResetNotification($token);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset notification sent!',
+            'token' => $token,
+            'reset_url' => config('app.frontend_url') . "/reset-password?token={$token}&email=" . urlencode($user->email)
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});

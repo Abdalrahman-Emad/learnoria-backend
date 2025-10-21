@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-
+use Illuminate\Validation\ValidationException;
 
 class ResetPasswordController extends Controller
 {
@@ -21,19 +22,23 @@ class ResetPasswordController extends Controller
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
+            function ($user, $password) {
                 $user->forceFill([
-                    'password' => Hash::make($request->password),
-                ])->save();
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
 
-                $user->setRememberToken(Str::random(60));
+                $user->save();
+
+                event(new PasswordReset($user));
             }
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return response()->json(['message' => 'Password reset successfully!']);
+            return response()->json(['message' => 'Password reset successfully!'], 200);
         }
 
-        return response()->json(['message' => __($status)], 400);
+        throw ValidationException::withMessages([
+            'email' => [__($status)],
+        ]);
     }
 }

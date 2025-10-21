@@ -2,26 +2,26 @@
 
 return [
 
-    'default' => env('MAIL_MAILER', 'smtp'),
+        'default' => env('MAIL_MAILER', 'log'),
+
 
     'mailers' => [
 
         'smtp' => [
             'transport' => 'smtp',
-            'host' => env('MAIL_HOST', 'smtp.gmail.com'),
-            'port' => env('MAIL_PORT', 587),
+            'url' => env('MAIL_URL'),
+            'host' => env('MAIL_HOST', '127.0.0.1'),
+            'port' => env('MAIL_PORT', 2525),
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'auth_mode' => null,
-            'stream' => [
-                'ssl' => [
-                    'allow_self_signed' => true,
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                ],
-            ],
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'localhost'), PHP_URL_HOST)),
+        ],
+
+         'log' => [
+            'transport' => 'log',
+            'channel' => env('MAIL_LOG_CHANNEL'),
         ],
 
         'ses' => ['transport' => 'ses'],
@@ -35,10 +35,6 @@ return [
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
         ],
 
-        'log' => [
-            'transport' => 'log',
-            'channel' => env('MAIL_LOG_CHANNEL'),
-        ],
 
         'array' => ['transport' => 'array'],
 
@@ -57,8 +53,17 @@ return [
     ],
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'noreply@learnoria.com'),
+        'address' => env('MAIL_FROM_ADDRESS', 'abdalrahmanemad48@gmail.com'),
         'name' => env('MAIL_FROM_NAME', 'Learnoria'),
     ],
+
+    'stream' => [
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true,
+        ],
+    ],
+
 
 ];
