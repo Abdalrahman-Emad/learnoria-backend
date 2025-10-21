@@ -12,6 +12,9 @@ use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 
+use App\Services\BrevoMailService;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -125,25 +128,15 @@ Route::get('/debug-config', function () {
 });
 
 Route::get('/test-mail', function () {
-    try {
-        \Illuminate\Support\Facades\Mail::raw('This is a test email from Learnoria on Railway!', function ($message) {
-            $message->to('your-test-email@gmail.com')
-                    ->subject('Test Email - Learnoria');
-        });
+    $to = 'abdalrahmanemad48@gmail.com';
+    $name = 'Abdalrahman';
+    $subject = 'Test Email from Learnoria (Brevo API)';
+    $html = '<h3>Hi from Learnoria</h3><p>This is a test email sent via Brevo API.</p>';
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Test email sent! Check your inbox (and spam folder).',
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
+    $result = BrevoMailService::send($to, $name, $subject, $html);
+
+    return response()->json($result);
 });
-
 
 
 
