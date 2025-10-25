@@ -34,5 +34,7 @@ return [
     'max_age' => 0,
 
     // فقط اجعلها true لو بتستخدم الـ cookies / session auth عبر الـ browser (sanctum)
-    'supports_credentials' => false,
+    // 'supports_credentials' => false,
+    'supports_credentials' => true,
+
 ];

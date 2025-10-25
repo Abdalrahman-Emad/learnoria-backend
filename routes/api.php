@@ -14,6 +14,10 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 
 use App\Services\BrevoMailService;
 
+Route::get('/test-mail', function () {
+    $result = BrevoMailService::send('your_email@gmail.com', 'Test Mail', '<h3>Brevo API Test Successful ✅</h3>');
+    return response()->json(['status' => $result ? 'sent' : 'failed']);
+});
 
 
 /*
